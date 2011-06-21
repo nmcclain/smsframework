@@ -1,0 +1,13 @@
+name = Validation
+description = Provides number validation features to the SMS Framework.
+core = 6.x
+
+package = SMS Framework
+dependencies[] = sms
+
+; Information added by drupal.org packaging script on 2011-03-31
+version = "6.x-2.x-dev"
+core = "6.x"
+project = "smsframework"
+datestamp = "1301531058"
+
