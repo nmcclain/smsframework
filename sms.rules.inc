@@ -34,9 +34,9 @@ function sms_token_values($type, $object = NULL, $options = array()) {
   $values = array();
   if ($type == 'sms_message') {
     $values['message'] = $object;
-    
+
     $words = explode(' ', $object);
-    
+
     foreach ($words as $key => $word) {
       $values['word-' . $key] = $word;
     }
@@ -44,7 +44,7 @@ function sms_token_values($type, $object = NULL, $options = array()) {
   elseif ($type == 'sms_number') {
     $values['number'] = $object;
   }
-  
+
   return $values;
 }
 
@@ -62,6 +62,6 @@ function sms_token_list($type = 'all') {
       $tokens['sms_number']['number'] = t('The origin mobile number');
       break;
   }
-  
+
   return $tokens;
 }

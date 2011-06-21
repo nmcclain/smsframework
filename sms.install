@@ -9,7 +9,8 @@
  * Implements hook_install().
  */
 function sms_install() {
-  drupal_install_schema('sms');
+  // TODO The drupal_(un)install_schema functions are called automatically in D7.
+  // drupal_install_schema('sms')
 }
 
 /**
@@ -18,8 +19,16 @@ function sms_install() {
 function sms_schema() {
   $schema['sms_carriers'] = array(
     'fields' => array(
-      'name'    => array('type' => 'varchar', 'not null' => TRUE, 'length' => 64),
-      'domain'  => array('type' => 'varchar', 'not null' => TRUE, 'length' => 128),
+      'name' => array(
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 64,
+      ),
+      'domain' => array(
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 128,
+      ),
     ),
     'primary key' => array('domain'),
   );
@@ -34,18 +43,22 @@ function sms_schema() {
  */
 function sms_update_1() {
   $ret = array();
-  db_drop_primary_key($ret, 'sms_user');
-  db_add_primary_key($ret, 'sms_user', array('number'));
-  db_add_index($ret, 'sms_user', 'uid', array('uid'));
-  db_drop_field($ret, 'sms_user', 'delta');
-  return $ret;
+  db_drop_primary_key('sms_user');
+  db_add_primary_key('sms_user', array('number'));
+  db_add_index('sms_user', 'uid', array('uid'));
+  db_drop_field('sms_user', 'delta');
+  // hook_update_N() no longer returns a $ret array. Instead, return
+  // nothing or a translated string indicating the update ran successfully.
+  // See http://drupal.org/node/224333#update_sql.
+  return t('TODO Add a descriptive string here to show in the UI.') /* $ret */;
 }
 
 /**
  * Implements hook_uninstall().
  */
 function sms_uninstall() {
-  drupal_uninstall_schema('sms');
+  // TODO The drupal_(un)install_schema functions are called automatically in D7.
+  // drupal_uninstall_schema('sms')
 
   $variables = array();
 

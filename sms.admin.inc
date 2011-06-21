@@ -8,7 +8,7 @@
 /**
  * Select default sms gateway form.
  */
-function sms_admin_default_form() {
+function sms_admin_default_form($form, &$form_state) {
   $gateways = sms_gateways();
 
   foreach ($gateways as $identifier => $gateway) {
@@ -16,13 +16,17 @@ function sms_admin_default_form() {
     $options[$identifier] = '';
     $form[$gateway['name']]['id'] = array('#value' => $identifier);
     if (function_exists($gateway['configure form'])) {
-      $form[$gateway['name']]['configure'] = array('#value' => l(t('configure'), 'admin/smsframework/gateways/'. $identifier));
+      $form[$gateway['name']]['configure'] = array('#value' => l(t('configure'), 'admin/smsframework/gateways/' . $identifier));
     }
     else {
       $form[$gateway['name']]['configure'] = array('#value' => t('No configuration options'));
     }
   }
-  $form['default'] = array('#type' => 'radios', '#options' => $options, '#default_value' => variable_get('sms_default_gateway', 'log'));
+  $form['default'] = array(
+    '#type' => 'radios',
+    '#options' => $options,
+    '#default_value' => variable_get('sms_default_gateway', 'log'),
+  );
 
   $form['submit'] = array(
     '#type' => 'submit',
@@ -53,7 +57,8 @@ function sms_admin_default_form_submit($form, &$form_state) {
  *
  * @ingroup themeable
  */
-function theme_sms_admin_default_form($form) {
+function theme_sms_admin_default_form($variables) {
+  $form = $variables['form'];
   $rows = array();
   foreach ($form as $name => $element) {
     if (isset($element['id']) && is_array($element['id'])) {
@@ -65,9 +70,12 @@ function theme_sms_admin_default_form($form) {
       unset($form[$name]);
     }
   }
-  $header = array(t('Default'), t('Name'), array('data' => t('Operations'), 'colspan' => 1));
-  $output .= theme('table', $header, $rows);
-  $output .= drupal_render($form);
+  $header = array(t('Default'), t('Name'), array(
+      'data' => t('Operations'),
+      'colspan' => 1,
+    ));
+  $output .= theme('table', array('header' => $header, 'rows' => $rows));
+  $output .= drupal_render_children($form);
 
   return $output;
 }
@@ -81,17 +89,20 @@ function theme_sms_admin_default_form($form) {
  * @see sms_admin_gateway_form_validate()
  * @see sms_admin_gateway_form_submit()
  */
-function sms_admin_gateway_form(&$form_state, $gateway_id) {
+function sms_admin_gateway_form($form, &$form_state, $gateway_id) {
   $gateway = sms_gateways('gateway', $gateway_id);
   if ($gateway && function_exists($gateway['configure form'])) {
-    drupal_set_title(t('@gateway configuration', array('@gateway' => $gateway['name'])));
+    drupal_set_title(t('@gateway configuration', array('@gateway' => $gateway['name'])), PASS_THROUGH);
     $form = $gateway['configure form']($gateway['configuration']);
 
     $form['submit'] = array(
       '#type' => 'submit',
       '#value' => t('Save'),
     );
-    $form['gateway'] = array('#type' => 'value', '#value' => $gateway);
+    $form['gateway'] = array(
+      '#type' => 'value',
+      '#value' => $gateway,
+    );
 
     return $form;
   }
@@ -107,7 +118,7 @@ function sms_admin_gateway_form(&$form_state, $gateway_id) {
  */
 function sms_admin_gateway_form_validate($form, &$form_state) {
   // Pass validation to gateway
-  $function = $form_state['values']['gateway']['configure form'] .'_validate';
+  $function = $form_state['values']['gateway']['configure form'] . '_validate';
   if (function_exists($function)) {
     $function($form, $form_state);
   }
@@ -124,7 +135,7 @@ function sms_admin_gateway_form_submit($form, &$form_state) {
 
   // Remove uneccesary values
   unset($form_state['values']['op'], $form_state['values']['submit'], $form_state['values']['gateway'], $form_state['values']['form_token'], $form_state['values']['form_id']);
-  variable_set('sms_'. $gateway['identifier'] .'_settings', $form_state['values']);
+  variable_set('sms_' . $gateway['identifier'] . '_settings', $form_state['values']);
   drupal_set_message(t('The gateway settings have been saved.'));
   $form_state['redirect'] = 'admin/smsframework/gateways';
 }
@@ -134,7 +145,7 @@ function sms_admin_gateway_form_submit($form, &$form_state) {
  *
  * @see sms_carriers_admin_form_submit().
  */
-function sms_carriers_admin_form() {
+function sms_carriers_admin_form($form, &$form_state) {
   $carriers = sms_carriers();
 
   $form = array();
@@ -213,7 +224,7 @@ function sms_carriers_admin_form_submit(&$form, &$form_state) {
  *
  * @see sms_carriers_edit_form_submit().
  */
-function sms_carriers_edit_form($form_state, $carrier = array()) {
+function sms_carriers_edit_form($form, $form_state, $carrier = array()) {
   $form['carrier'] = array(
     '#type' => 'value',
     '#value' => $carrier['domain'],
@@ -265,9 +276,15 @@ function sms_carriers_edit_form_submit(&$form, &$form_state) {
  *
  * @see sms_carriers_delete_form_submit()
  */
-function sms_carriers_delete_form(&$form_state, $carrier) {
-  $form['domain'] = array('#type' => 'value', '#value' => $carrier['domain']);
-  $form['type'] = array('#type' => 'value', '#value' => $carrier['type']);
+function sms_carriers_delete_form($form, &$form_state, $carrier) {
+  $form['domain'] = array(
+    '#type' => 'value',
+    '#value' => $carrier['domain'],
+  );
+  $form['type'] = array(
+    '#type' => 'value',
+    '#value' => $carrier['type'],
+  );
   if ($carrier['type'] == SMS_CARRIER_OVERRIDDEN) {
     return confirm_form($form, t('Are you sure you want revert %carrier?', array('%carrier' => $carrier['name'])), 'admin/smsframework/carriers', t('Reverting this carrier will delete it from the database. It will be replaced with the default carrier settings. This action cannot be undone.'), t('Revert'), t('Cancel'));
   }
@@ -282,7 +299,11 @@ function sms_carriers_delete_form(&$form_state, $carrier) {
  * @see sms_carriers_delete_form()
  */
 function sms_carriers_delete_form_submit($form, &$form_state) {
-  db_query('DELETE FROM {sms_carriers} WHERE domain = "%s"', $form_state['values']['domain']);
+  // TODO Please review the conversion of this statement to the D7 database API syntax.
+  /* db_query('DELETE FROM {sms_carriers} WHERE domain = "%s"', $form_state['values']['domain']) */
+  db_delete('sms_carriers')
+  ->condition('domain', $form_state['values']['domain'])
+  ->execute();
   if ($carrier['type'] == SMS_CARRIER_OVERRIDDEN) {
     drupal_set_message(t('The carrier has been reverted.'));
   }
@@ -301,7 +322,8 @@ function sms_carriers_delete_form_submit($form, &$form_state) {
  *
  * @ingroup themeable
  */
-function theme_sms_carriers_admin_form($form) {
+function theme_sms_carriers_admin_form($variables) {
+  $form = $variables['form'];
   $output = '';
 
   $header = array('', t('Carrier'), t('Domain'), t('Actions'));
@@ -319,14 +341,17 @@ function theme_sms_carriers_admin_form($form) {
       'status' => drupal_render($form['status'][$element]),
       'name' => $name,
       'domain' => drupal_render($form['domain'][$element]),
-      'actions' =>  drupal_render($form['actions'][$element]),
+      'actions' => drupal_render($form['actions'][$element]),
     );
     $rows[] = $row;
   }
 
-  $output .= theme('table', $header, $rows, array('id' => 'sms-form-table', 'class' => 'sms'));
+  $output .= theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array(
+      'id' => 'sms-form-table',
+      'class' => 'sms',
+    )));
   $output .= drupal_render($form['submit']);
-  $output .= drupal_render($form);
+  $output .= drupal_render_children($form);
 
   return $output;
 }

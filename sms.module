@@ -8,35 +8,35 @@
 
 // Direction codes
 define('SMS_DIR_NONE', 0);
-define('SMS_DIR_OUT',  1);
-define('SMS_DIR_IN',   2);
-define('SMS_DIR_ALL',  4);
+define('SMS_DIR_OUT',   1);
+define('SMS_DIR_IN',    2);
+define('SMS_DIR_ALL',   4);
 
 // Message status codes
 // 0=Unknown, 2xx=Positive, 3xx=Positive/Neutral (context-dependent), 4xx=Negative
-define('SMS_MSG_STATUS_UNKNOWN',     0);
-define('SMS_MSG_STATUS_OK',        200);
+define('SMS_MSG_STATUS_UNKNOWN',      0);
+define('SMS_MSG_STATUS_OK',         200);
 define('SMS_MSG_STATUS_DELIVERED', 202);
-define('SMS_MSG_STATUS_QUEUED',    302);
-define('SMS_MSG_STATUS_ERROR',     400);
-define('SMS_MSG_STATUS_NOCREDIT',  402);
-define('SMS_MSG_STATUS_EXPIRED',   408);
+define('SMS_MSG_STATUS_QUEUED',     302);
+define('SMS_MSG_STATUS_ERROR',      400);
+define('SMS_MSG_STATUS_NOCREDIT',   402);
+define('SMS_MSG_STATUS_EXPIRED',    408);
 
 // Gateway response codes
 // 0=Unknown, 2xx=Positive, 4xx=Negative(likely client err), 5xx=Negative(likely gateway err)
-define('SMS_GW_UNKNOWN_STATUS',     0);
-define('SMS_GW_OK',               200);
-define('SMS_GW_ERR_AUTH',         401);
+define('SMS_GW_UNKNOWN_STATUS',      0);
+define('SMS_GW_OK',                200);
+define('SMS_GW_ERR_AUTH',          401);
 define('SMS_GW_ERR_INVALID_CALL', 400);
-define('SMS_GW_ERR_NOT_FOUND',    404);
-define('SMS_GW_ERR_MSG_LIMITS',   413);
-define('SMS_GW_ERR_MSG_ROUTING',  502);
-define('SMS_GW_ERR_MSG_QUEUING',  408);
-define('SMS_GW_ERR_MSG_OTHER',    409);
-define('SMS_GW_ERR_SRC_NUMBER',   415);
-define('SMS_GW_ERR_DEST_NUMBER',  416);
-define('SMS_GW_ERR_CREDIT',       402);
-define('SMS_GW_ERR_OTHER',        500);
+define('SMS_GW_ERR_NOT_FOUND',     404);
+define('SMS_GW_ERR_MSG_LIMITS',    413);
+define('SMS_GW_ERR_MSG_ROUTING',   502);
+define('SMS_GW_ERR_MSG_QUEUING',   408);
+define('SMS_GW_ERR_MSG_OTHER',     409);
+define('SMS_GW_ERR_SRC_NUMBER',    415);
+define('SMS_GW_ERR_DEST_NUMBER',   416);
+define('SMS_GW_ERR_CREDIT',        402);
+define('SMS_GW_ERR_OTHER',         500);
 
 //
 define('SMS_CARRIER_DEFAULT', 0);
@@ -56,7 +56,7 @@ function sms_menu() {
     'page callback' => 'system_admin_menu_block_page',
     'access arguments' => array('administer smsframework'),
     'file' => 'system.admin.inc',
-    'file path' => drupal_get_path('module', 'system')
+    'file path' => drupal_get_path('module', 'system'),
   );
 
   $items['admin/smsframework/gateways'] = array(
@@ -127,10 +127,15 @@ function sms_menu() {
 }
 
 /**
- * Implements hook_perm().
+ * Implements hook_permission().
  */
-function sms_perm() {
-  return array('administer smsframework');
+function sms_permission() {
+  return array(
+    'administer smsframework' => array(
+      'title' => t('administer smsframework'),
+      'description' => t('TODO Add a description for \'administer smsframework\''),
+    ),
+  );
 }
 
 /**
@@ -139,7 +144,7 @@ function sms_perm() {
 function sms_theme() {
   $items['sms_admin_default_form'] =
   $items['sms_carriers_admin_form'] = array(
-    'arguments' => array('form' => NULL),
+    'render element' => 'form',
     'file' => 'sms.admin.inc',
   );
 
@@ -162,7 +167,7 @@ function sms_send($number, $message, $options = array()) {
   $gateway = sms_default_gateway();
 
   foreach (module_implements('sms_send') as $module) {
-    $function = $module .'_sms_send';
+    $function = $module . '_sms_send';
     $function($number, $message, $options, $gateway);
   }
 
@@ -174,7 +179,7 @@ function sms_send($number, $message, $options = array()) {
 
   // Post process hook
   foreach (module_implements('sms_send_process') as $module) {
-    $function = $module .'_sms_send_process';
+    $function = $module . '_sms_send_process';
     $function('post process', $number, $message, $options, $gateway, $result);
   }
 
@@ -192,7 +197,7 @@ function sms_handle_result($result, $number, $message) {
     $error_message = 'Sending SMS to %number failed.';
     $variables['%number'] = $number;
     if ($result['message']) {
-      $error_message .= ' The gateway said '. $result['message'];
+      $error_message .= ' The gateway said ' . $result['message'];
       if (!empty($result['variables'])) {
         $variables = array_merge($variables, $result['variables']);
       }
@@ -333,7 +338,7 @@ function _gateways_build() {
 
   $gateway_array = module_invoke_all('gateway_info');
   foreach ($gateway_array as $identifier => $info) {
-    $info['configuration'] = variable_get('sms_'. $identifier .'_settings', '');
+    $info['configuration'] = variable_get('sms_' . $identifier . '_settings', '');
     $_gateways[$identifier] = $info;
     $_names[$identifier] = $info['name'];
   }
@@ -414,7 +419,10 @@ function sms_carriers($domain = NULL) {
 
   // Load default carriers from code
   foreach ($default_carriers as $id => $carrier) {
-    $carriers[$id] = array('name' => $carrier, 'type' => SMS_CARRIER_DEFAULT);
+    $carriers[$id] = array(
+      'name' => $carrier,
+      'type' => SMS_CARRIER_DEFAULT,
+    );
   }
 
   // Load overrideen carriers from database
@@ -434,7 +442,7 @@ function sms_carriers($domain = NULL) {
     );
   }
 
-  foreach($enabled_carriers as $carrier) {
+  foreach ($enabled_carriers as $carrier) {
     if (is_array($carriers[$carrier])) {
       $carriers[$carrier]['status'] = 1;
     }
@@ -465,7 +473,7 @@ function carrier_save($domain, $edit) {
       $edit['status'] = 1;
       drupal_write_record('sms_carriers', $edit);
     }
-    else if(!empty($edit['domain'])) {
+    else if (!empty($edit['domain'])) {
       drupal_write_record('sms_carriers', $edit, 'domain');
       // TODO: we need more logic to figure out when someone is changing the domain name
     }
@@ -477,7 +485,7 @@ function carrier_save($domain, $edit) {
 }
 
 /**
- * Implements hook_sms_carriers()
+ * Implements hook_sms_carriers().
  */
 function sms_sms_carriers() {
   return array(
@@ -576,23 +584,23 @@ function sms_formatter($number, $format = 1) {
   $number = preg_replace("/[^0-9]/", '', $number);
 
   /*
-  @todo - the only length specification in the international numbering plan is that
-  numbers should be a maximum of 15 digits.
+   @todo - the only length specification in the international numbering plan is that
+   numbers should be a maximum of 15 digits.
 
-  http://en.wikipedia.org/wiki/E.164
+   http://en.wikipedia.org/wiki/E.164
 
-  if (strlen($number) > 16) {
-    if ($number[0] == 1) {
-      $number = ltrim($number, 1);
-    }
-    else {
-      return FALSE;
-    }
-  }
-  elseif (strlen($number) < 10) {
-    return FALSE;
-  }
-  */
+   if (strlen($number) > 16) {
+   if ($number[0] == 1) {
+   $number = ltrim($number, 1);
+   }
+   else {
+   return FALSE;
+   }
+   }
+   elseif (strlen($number) < 10) {
+   return FALSE;
+   }
+   */
 
   return $number;
 }
@@ -621,10 +629,18 @@ function sms_validate_number(&$number, $options = array()) {
  * @return const The constant that defines this direction combination. Usually an integer value.
  */
 function sms_dir($out, $in) {
-  if ( $out &&  $in) { return SMS_DIR_ALL;  }
-  if ( $out && !$in) { return SMS_DIR_OUT;  }
-  if (!$out &&  $in) { return SMS_DIR_IN;   }
-  if (!$out && !$in) { return SMS_DIR_NONE; }
+  if ( $out &&   $in) {
+    return SMS_DIR_ALL;
+  }
+  if ( $out && !$in) {
+    return SMS_DIR_OUT;
+  }
+  if (!$out &&   $in) {
+    return SMS_DIR_IN;
+  }
+  if (!$out && !$in) {
+    return SMS_DIR_NONE;
+  }
 }
 
 /**
