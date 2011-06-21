@@ -3,12 +3,9 @@ description = "Provides a extensible API that facilitates communication between 
 package = SMS Framework
 core = 7.x
 
-; Information added by drupal.org packaging script on 2011-03-31
-version = "6.x-2.x-dev"
+version = "7.x-2.x-dev"
 core = 7.x
 project = "smsframework"
-datestamp = "1301531058"
-
 
 files[] = sms.admin.inc
 files[] = sms.install

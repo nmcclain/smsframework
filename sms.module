@@ -133,7 +133,7 @@ function sms_permission() {
   return array(
     'administer smsframework' => array(
       'title' => t('administer smsframework'),
-      'description' => t('TODO Add a description for \'administer smsframework\''),
+      'description' => t('Administer SMS Framework'),
     ),
   );
 }

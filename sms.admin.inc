@@ -15,13 +15,14 @@ function sms_admin_default_form($form, &$form_state) {
     $active = ($identifier == variable_get('sms_default_gateway', 'log'));
     $options[$identifier] = '';
     $form[$gateway['name']]['id'] = array('#value' => $identifier);
-    if (function_exists($gateway['configure form'])) {
+    if ( isset($gateway['configure form'] ) and ( function_exists($gateway['configure form'] ))) {
       $form[$gateway['name']]['configure'] = array('#value' => l(t('configure'), 'admin/smsframework/gateways/' . $identifier));
     }
     else {
       $form[$gateway['name']]['configure'] = array('#value' => t('No configuration options'));
     }
   }
+
   $form['default'] = array(
     '#type' => 'radios',
     '#options' => $options,
@@ -61,11 +62,12 @@ function theme_sms_admin_default_form($variables) {
   $form = $variables['form'];
   $rows = array();
   foreach ($form as $name => $element) {
-    if (isset($element['id']) && is_array($element['id'])) {
+    if (is_array($element) and isset($element['id']) and is_array($element['id'])) {
+        # dsm($element['configure']);
       $rows[] = array(
         drupal_render($form['default'][$element['id']['#value']]),
         check_plain($name),
-        drupal_render($element['configure']),
+        $element['configure']['#value'], // XXX why doesn't this work?  drupal_render($element['configure']),
       );
       unset($form[$name]);
     }
@@ -74,6 +76,7 @@ function theme_sms_admin_default_form($variables) {
       'data' => t('Operations'),
       'colspan' => 1,
     ));
+  $output = '';
   $output .= theme('table', array('header' => $header, 'rows' => $rows));
   $output .= drupal_render_children($form);
 
@@ -182,7 +185,7 @@ function sms_carriers_admin_form($form, &$form_state) {
     if ($carrier['type'] == SMS_CARRIER_OVERRIDDEN) {
       $actions[] = l(t('Revert'), "admin/smsframework/carriers/delete/{$id}");
     }
-    else if ($carrier['type'] == SMS_CARRIER_NORMAL) {
+    elseif ($carrier['type'] == SMS_CARRIER_NORMAL) {
       $actions[] = l(t('Delete'), "admin/smsframework/carriers/delete/{$id}");
     }
 
@@ -299,8 +302,6 @@ function sms_carriers_delete_form($form, &$form_state, $carrier) {
  * @see sms_carriers_delete_form()
  */
 function sms_carriers_delete_form_submit($form, &$form_state) {
-  // TODO Please review the conversion of this statement to the D7 database API syntax.
-  /* db_query('DELETE FROM {sms_carriers} WHERE domain = "%s"', $form_state['values']['domain']) */
   db_delete('sms_carriers')
   ->condition('domain', $form_state['values']['domain'])
   ->execute();
@@ -324,7 +325,6 @@ function sms_carriers_delete_form_submit($form, &$form_state) {
  */
 function theme_sms_carriers_admin_form($variables) {
   $form = $variables['form'];
-  $output = '';
 
   $header = array('', t('Carrier'), t('Domain'), t('Actions'));
 
@@ -346,6 +346,7 @@ function theme_sms_carriers_admin_form($variables) {
     $rows[] = $row;
   }
 
+  $output = '';
   $output .= theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array(
       'id' => 'sms-form-table',
       'class' => 'sms',
