@@ -345,12 +345,8 @@ function theme_sms_carriers_admin_form($variables) {
     );
     $rows[] = $row;
   }
-
   $output = '';
-  $output .= theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array(
-      'id' => 'sms-form-table',
-      'class' => 'sms',
-    )));
+  $output .= theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array( 'class' => array('sms'), 'id' => 'sms-form-table' )));
   $output .= drupal_render($form['submit']);
   $output .= drupal_render_children($form);
 

@@ -422,22 +422,23 @@ function sms_carriers($domain = NULL) {
     $carriers[$id] = array(
       'name' => $carrier,
       'type' => SMS_CARRIER_DEFAULT,
+      'status' => 0,
     );
   }
 
-  // Load overrideen carriers from database
-  $result = db_query("SELECT name, domain FROM {sms_carriers}");
+  // Load overridden carriers from database
+  $result = db_query("SELECT s.name, s.domain FROM {sms_carriers} s");
 
-  while ($carrier = db_fetch_array($result)) {
-    if (in_array($carrier['domain'], array_keys($carriers))) {
+  foreach ($result as $carrier) {
+    if (in_array($carrier->domain, array_keys((array) $carriers))) { # XXX bad 
       $type = SMS_CARRIER_OVERRIDDEN;
     }
     else {
       $type = SMS_CARRIER_NORMAL;
     }
 
-    $carriers[$carrier['domain']] = array(
-      'name' => $carrier['name'],
+    $carriers[$carrier->domain] = array(
+      'name' => $carrier->name,
       'type' => $type,
     );
   }
