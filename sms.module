@@ -430,7 +430,7 @@ function sms_carriers($domain = NULL) {
   $result = db_query("SELECT s.name, s.domain FROM {sms_carriers} s");
 
   foreach ($result as $carrier) {
-    if (in_array($carrier->domain, array_keys((array) $carriers))) { # XXX bad 
+    if (in_array($carrier->domain, array_keys((array) $carriers))) { # XXX D7 porting issue: bad to cast Obj as array - do this the right way!
       $type = SMS_CARRIER_OVERRIDDEN;
     }
     else {
@@ -474,9 +474,9 @@ function carrier_save($domain, $edit) {
       $edit['status'] = 1;
       drupal_write_record('sms_carriers', $edit);
     }
-    else if (!empty($edit['domain'])) {
+    elseif (!empty($edit['domain'])) {
       drupal_write_record('sms_carriers', $edit, 'domain');
-      // TODO: we need more logic to figure out when someone is changing the domain name
+      // TODO: we need more logic to figure out when someone is changing the domain name - broken in d6 version also
     }
   }
   else {

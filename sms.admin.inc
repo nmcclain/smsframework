@@ -1,5 +1,7 @@
 <?php
 
+// $Id$
+
 /**
  * @file
  * The admin sms functions.
@@ -67,7 +69,7 @@ function theme_sms_admin_default_form($variables) {
       $rows[] = array(
         drupal_render($form['default'][$element['id']['#value']]),
         check_plain($name),
-        $element['configure']['#value'], // XXX why doesn't this work?  drupal_render($element['configure']),
+        $element['configure']['#value'], // XXX D7 porting issue: why doesn't this work?  drupal_render($element['configure']),
       );
       unset($form[$name]);
     }
@@ -168,10 +170,13 @@ function sms_carriers_admin_form($form, &$form_state) {
         break;
     }
     $form['status']['#tree'] = TRUE;
+    if (!isset($carrier['status'])) {
+      $carrier['status']=0;
+    }
     $form['status'][$css_safe_id] = array(
       '#type' => 'checkbox',
-      '#title' => $carrier['name'],
-      '#description' => $storage,
+      '#title' => check_plain($carrier['name']),
+      '#description' => check_plain($storage),
       '#default_value' => $carrier['status'],
     );
 
@@ -216,7 +221,7 @@ function sms_carriers_admin_form_submit(&$form, &$form_state) {
     }
   }
   variable_set('sms_enabled_carriers', $enabled_carriers);
-  drupal_set_message('The configuration options have been saved.');
+  drupal_set_message(t('The configuration options have been saved.'));
 }
 
 /**
@@ -228,6 +233,12 @@ function sms_carriers_admin_form_submit(&$form, &$form_state) {
  * @see sms_carriers_edit_form_submit().
  */
 function sms_carriers_edit_form($form, $form_state, $carrier = array()) {
+  if (!isset($carrier['domain'])) {
+    $carrier['domain']=NULL;
+  }
+  if (!isset($carrier['name'])) {
+    $carrier['name']=NULL;
+  }
   $form['carrier'] = array(
     '#type' => 'value',
     '#value' => $carrier['domain'],
@@ -303,14 +314,16 @@ function sms_carriers_delete_form($form, &$form_state, $carrier) {
  */
 function sms_carriers_delete_form_submit($form, &$form_state) {
   db_delete('sms_carriers')
-  ->condition('domain', $form_state['values']['domain'])
-  ->execute();
-  if ($carrier['type'] == SMS_CARRIER_OVERRIDDEN) {
-    drupal_set_message(t('The carrier has been reverted.'));
-  }
-  if ($carrier['type'] == SMS_CARRIER_NORMAL) {
-    drupal_set_message(t('The carrier has been deleted.'));
-  }
+    ->condition('domain', $form_state['values']['domain'])
+    ->execute();
+  # XXX D7 porting issue: $carrier below never gets set ??
+  # --- this is ALSO a bug in the D6 verion!
+  #if ($carrier['type'] == SMS_CARRIER_OVERRIDDEN) {
+  #  drupal_set_message(t('The carrier has been reverted.'));
+  #}
+  #if ($carrier['type'] == SMS_CARRIER_NORMAL) {
+  #  drupal_set_message(t('The carrier has been deleted.'));
+  #}
 
   $form_state['redirect'] = 'admin/smsframework/carriers';
 }
@@ -340,8 +353,8 @@ function theme_sms_carriers_admin_form($variables) {
     $row = array(
       'status' => drupal_render($form['status'][$element]),
       'name' => $name,
-      'domain' => drupal_render($form['domain'][$element]),
-      'actions' => drupal_render($form['actions'][$element]),
+      'domain' => $form['domain'][$element]['#value'], // XXX D7 porting issue: why doesn't this work?  'domain' => drupal_render($form['domain'][$element]),
+      'actions' => $form['actions'][$element]['#value'], // XXX D7 porting issue: why doesn't this work?  'actions' => drupal_render($form['actions'][$element]),
     );
     $rows[] = $row;
   }
@@ -352,3 +365,4 @@ function theme_sms_carriers_admin_form($variables) {
 
   return $output;
 }
+

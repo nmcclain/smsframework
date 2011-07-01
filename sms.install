@@ -1,5 +1,7 @@
 <?php
 
+// $Id$ 
+
 /**
  * @file
  * Install, update and uninstall functions for the smsframework module.
@@ -54,7 +56,7 @@ function sms_update_1() {
 function sms_uninstall() {
 
   $variables = array();
-  # XXX populate this
+  # XXX D7 porting issue: need to variable_del sms* variables on sms_uninstall()
   foreach ($variables as $variable) {
     variable_del($variable);
   }
