@@ -1,0 +1,636 @@
+diff --git a/sms.admin.inc b/sms.admin.inc
+index 6575955..0acf23c 100644
+--- a/sms.admin.inc
++++ b/sms.admin.inc
+@@ -1,5 +1,7 @@
+ <?php
+ 
++// $Id$
++
+ /**
+  * @file
+  * The admin sms functions.
+@@ -8,21 +10,26 @@
+ /**
+  * Select default sms gateway form.
+  */
+-function sms_admin_default_form() {
++function sms_admin_default_form($form, &$form_state) {
+   $gateways = sms_gateways();
+ 
+   foreach ($gateways as $identifier => $gateway) {
+     $active = ($identifier == variable_get('sms_default_gateway', 'log'));
+     $options[$identifier] = '';
+     $form[$gateway['name']]['id'] = array('#value' => $identifier);
+-    if (function_exists($gateway['configure form'])) {
+-      $form[$gateway['name']]['configure'] = array('#value' => l(t('configure'), 'admin/smsframework/gateways/'. $identifier));
++    if ( isset($gateway['configure form'] ) and ( function_exists($gateway['configure form'] ))) {
++      $form[$gateway['name']]['configure'] = array('#value' => l(t('configure'), 'admin/smsframework/gateways/' . $identifier));
+     }
+     else {
+       $form[$gateway['name']]['configure'] = array('#value' => t('No configuration options'));
+     }
+   }
+-  $form['default'] = array('#type' => 'radios', '#options' => $options, '#default_value' => variable_get('sms_default_gateway', 'log'));
++
++  $form['default'] = array(
++    '#type' => 'radios',
++    '#options' => $options,
++    '#default_value' => variable_get('sms_default_gateway', 'log'),
++  );
+ 
+   $form['submit'] = array(
+     '#type' => 'submit',
+@@ -53,21 +60,27 @@ function sms_admin_default_form_submit($form, &$form_state) {
+  *
+  * @ingroup themeable
+  */
+-function theme_sms_admin_default_form($form) {
++function theme_sms_admin_default_form($variables) {
++  $form = $variables['form'];
+   $rows = array();
+   foreach ($form as $name => $element) {
+-    if (isset($element['id']) && is_array($element['id'])) {
++    if (is_array($element) and isset($element['id']) and is_array($element['id'])) {
++        # dsm($element['configure']);
+       $rows[] = array(
+         drupal_render($form['default'][$element['id']['#value']]),
+         check_plain($name),
+-        drupal_render($element['configure']),
++        $element['configure']['#value'], // XXX D7 porting issue: why doesn't this work?  drupal_render($element['configure']),
+       );
+       unset($form[$name]);
+     }
+   }
+-  $header = array(t('Default'), t('Name'), array('data' => t('Operations'), 'colspan' => 1));
+-  $output .= theme('table', $header, $rows);
+-  $output .= drupal_render($form);
++  $header = array(t('Default'), t('Name'), array(
++      'data' => t('Operations'),
++      'colspan' => 1,
++    ));
++  $output = '';
++  $output .= theme('table', array('header' => $header, 'rows' => $rows));
++  $output .= drupal_render_children($form);
+ 
+   return $output;
+ }
+@@ -81,17 +94,20 @@ function theme_sms_admin_default_form($form) {
+  * @see sms_admin_gateway_form_validate()
+  * @see sms_admin_gateway_form_submit()
+  */
+-function sms_admin_gateway_form(&$form_state, $gateway_id) {
++function sms_admin_gateway_form($form, &$form_state, $gateway_id) {
+   $gateway = sms_gateways('gateway', $gateway_id);
+   if ($gateway && function_exists($gateway['configure form'])) {
+-    drupal_set_title(t('@gateway configuration', array('@gateway' => $gateway['name'])));
++    drupal_set_title(t('@gateway configuration', array('@gateway' => $gateway['name'])), PASS_THROUGH);
+     $form = $gateway['configure form']($gateway['configuration']);
+ 
+     $form['submit'] = array(
+       '#type' => 'submit',
+       '#value' => t('Save'),
+     );
+-    $form['gateway'] = array('#type' => 'value', '#value' => $gateway);
++    $form['gateway'] = array(
++      '#type' => 'value',
++      '#value' => $gateway,
++    );
+ 
+     return $form;
+   }
+@@ -107,7 +123,7 @@ function sms_admin_gateway_form(&$form_state, $gateway_id) {
+  */
+ function sms_admin_gateway_form_validate($form, &$form_state) {
+   // Pass validation to gateway
+-  $function = $form_state['values']['gateway']['configure form'] .'_validate';
++  $function = $form_state['values']['gateway']['configure form'] . '_validate';
+   if (function_exists($function)) {
+     $function($form, $form_state);
+   }
+@@ -124,7 +140,7 @@ function sms_admin_gateway_form_submit($form, &$form_state) {
+ 
+   // Remove uneccesary values
+   unset($form_state['values']['op'], $form_state['values']['submit'], $form_state['values']['gateway'], $form_state['values']['form_token'], $form_state['values']['form_id']);
+-  variable_set('sms_'. $gateway['identifier'] .'_settings', $form_state['values']);
++  variable_set('sms_' . $gateway['identifier'] . '_settings', $form_state['values']);
+   drupal_set_message(t('The gateway settings have been saved.'));
+   $form_state['redirect'] = 'admin/smsframework/gateways';
+ }
+@@ -134,7 +150,7 @@ function sms_admin_gateway_form_submit($form, &$form_state) {
+  *
+  * @see sms_carriers_admin_form_submit().
+  */
+-function sms_carriers_admin_form() {
++function sms_carriers_admin_form($form, &$form_state) {
+   $carriers = sms_carriers();
+ 
+   $form = array();
+@@ -154,10 +170,13 @@ function sms_carriers_admin_form() {
+         break;
+     }
+     $form['status']['#tree'] = TRUE;
++    if (!isset($carrier['status'])) {
++      $carrier['status']=0;
++    }
+     $form['status'][$css_safe_id] = array(
+       '#type' => 'checkbox',
+-      '#title' => $carrier['name'],
+-      '#description' => $storage,
++      '#title' => check_plain($carrier['name']),
++      '#description' => check_plain($storage),
+       '#default_value' => $carrier['status'],
+     );
+ 
+@@ -171,7 +190,7 @@ function sms_carriers_admin_form() {
+     if ($carrier['type'] == SMS_CARRIER_OVERRIDDEN) {
+       $actions[] = l(t('Revert'), "admin/smsframework/carriers/delete/{$id}");
+     }
+-    else if ($carrier['type'] == SMS_CARRIER_NORMAL) {
++    elseif ($carrier['type'] == SMS_CARRIER_NORMAL) {
+       $actions[] = l(t('Delete'), "admin/smsframework/carriers/delete/{$id}");
+     }
+ 
+@@ -202,7 +221,7 @@ function sms_carriers_admin_form_submit(&$form, &$form_state) {
+     }
+   }
+   variable_set('sms_enabled_carriers', $enabled_carriers);
+-  drupal_set_message('The configuration options have been saved.');
++  drupal_set_message(t('The configuration options have been saved.'));
+ }
+ 
+ /**
+@@ -213,7 +232,13 @@ function sms_carriers_admin_form_submit(&$form, &$form_state) {
+  *
+  * @see sms_carriers_edit_form_submit().
+  */
+-function sms_carriers_edit_form($form_state, $carrier = array()) {
++function sms_carriers_edit_form($form, $form_state, $carrier = array()) {
++  if (!isset($carrier['domain'])) {
++    $carrier['domain']=NULL;
++  }
++  if (!isset($carrier['name'])) {
++    $carrier['name']=NULL;
++  }
+   $form['carrier'] = array(
+     '#type' => 'value',
+     '#value' => $carrier['domain'],
+@@ -265,9 +290,15 @@ function sms_carriers_edit_form_submit(&$form, &$form_state) {
+  *
+  * @see sms_carriers_delete_form_submit()
+  */
+-function sms_carriers_delete_form(&$form_state, $carrier) {
+-  $form['domain'] = array('#type' => 'value', '#value' => $carrier['domain']);
+-  $form['type'] = array('#type' => 'value', '#value' => $carrier['type']);
++function sms_carriers_delete_form($form, &$form_state, $carrier) {
++  $form['domain'] = array(
++    '#type' => 'value',
++    '#value' => $carrier['domain'],
++  );
++  $form['type'] = array(
++    '#type' => 'value',
++    '#value' => $carrier['type'],
++  );
+   if ($carrier['type'] == SMS_CARRIER_OVERRIDDEN) {
+     return confirm_form($form, t('Are you sure you want revert %carrier?', array('%carrier' => $carrier['name'])), 'admin/smsframework/carriers', t('Reverting this carrier will delete it from the database. It will be replaced with the default carrier settings. This action cannot be undone.'), t('Revert'), t('Cancel'));
+   }
+@@ -282,13 +313,17 @@ function sms_carriers_delete_form(&$form_state, $carrier) {
+  * @see sms_carriers_delete_form()
+  */
+ function sms_carriers_delete_form_submit($form, &$form_state) {
+-  db_query('DELETE FROM {sms_carriers} WHERE domain = "%s"', $form_state['values']['domain']);
+-  if ($carrier['type'] == SMS_CARRIER_OVERRIDDEN) {
+-    drupal_set_message(t('The carrier has been reverted.'));
+-  }
+-  if ($carrier['type'] == SMS_CARRIER_NORMAL) {
+-    drupal_set_message(t('The carrier has been deleted.'));
+-  }
++  db_delete('sms_carriers')
++    ->condition('domain', $form_state['values']['domain'])
++    ->execute();
++  # XXX D7 porting issue: $carrier below never gets set ??
++  # --- this is ALSO a bug in the D6 verion!
++  #if ($carrier['type'] == SMS_CARRIER_OVERRIDDEN) {
++  #  drupal_set_message(t('The carrier has been reverted.'));
++  #}
++  #if ($carrier['type'] == SMS_CARRIER_NORMAL) {
++  #  drupal_set_message(t('The carrier has been deleted.'));
++  #}
+ 
+   $form_state['redirect'] = 'admin/smsframework/carriers';
+ }
+@@ -301,8 +336,8 @@ function sms_carriers_delete_form_submit($form, &$form_state) {
+  *
+  * @ingroup themeable
+  */
+-function theme_sms_carriers_admin_form($form) {
+-  $output = '';
++function theme_sms_carriers_admin_form($variables) {
++  $form = $variables['form'];
+ 
+   $header = array('', t('Carrier'), t('Domain'), t('Actions'));
+ 
+@@ -318,15 +353,16 @@ function theme_sms_carriers_admin_form($form) {
+     $row = array(
+       'status' => drupal_render($form['status'][$element]),
+       'name' => $name,
+-      'domain' => drupal_render($form['domain'][$element]),
+-      'actions' =>  drupal_render($form['actions'][$element]),
++      'domain' => $form['domain'][$element]['#value'], // XXX D7 porting issue: why doesn't this work?  'domain' => drupal_render($form['domain'][$element]),
++      'actions' => $form['actions'][$element]['#value'], // XXX D7 porting issue: why doesn't this work?  'actions' => drupal_render($form['actions'][$element]),
+     );
+     $rows[] = $row;
+   }
+-
+-  $output .= theme('table', $header, $rows, array('id' => 'sms-form-table', 'class' => 'sms'));
++  $output = '';
++  $output .= theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array( 'class' => array('sms'), 'id' => 'sms-form-table' )));
+   $output .= drupal_render($form['submit']);
+-  $output .= drupal_render($form);
++  $output .= drupal_render_children($form);
+ 
+   return $output;
+ }
++
+diff --git a/sms.info b/sms.info
+index e94999b..88e3bd4 100644
+--- a/sms.info
++++ b/sms.info
+@@ -1,11 +1,13 @@
+ name = "SMS Framework"
+ description = "Provides a extensible API that facilitates communication between Drupal and various SMS gateways."
+ package = SMS Framework
+-core = 6.x
++core = 7.x
+ 
+-; Information added by drupal.org packaging script on 2011-03-31
+-version = "6.x-2.x-dev"
+-core = "6.x"
++version = "7.x-2.x-dev"
++core = 7.x
+ project = "smsframework"
+-datestamp = "1301531058"
+ 
++files[] = sms.admin.inc
++files[] = sms.install
++files[] = sms.module
++files[] = sms.rules.inc
+diff --git a/sms.install b/sms.install
+index df2c892..04fecaf 100644
+--- a/sms.install
++++ b/sms.install
+@@ -1,5 +1,7 @@
+ <?php
+ 
++// $Id$ 
++
+ /**
+  * @file
+  * Install, update and uninstall functions for the smsframework module.
+@@ -9,7 +11,6 @@
+  * Implements hook_install().
+  */
+ function sms_install() {
+-  drupal_install_schema('sms');
+ }
+ 
+ /**
+@@ -18,8 +19,16 @@ function sms_install() {
+ function sms_schema() {
+   $schema['sms_carriers'] = array(
+     'fields' => array(
+-      'name'    => array('type' => 'varchar', 'not null' => TRUE, 'length' => 64),
+-      'domain'  => array('type' => 'varchar', 'not null' => TRUE, 'length' => 128),
++      'name' => array(
++        'type' => 'varchar',
++        'not null' => TRUE,
++        'length' => 64,
++      ),
++      'domain' => array(
++        'type' => 'varchar',
++        'not null' => TRUE,
++        'length' => 128,
++      ),
+     ),
+     'primary key' => array('domain'),
+   );
+@@ -34,21 +43,20 @@ function sms_schema() {
+  */
+ function sms_update_1() {
+   $ret = array();
+-  db_drop_primary_key($ret, 'sms_user');
+-  db_add_primary_key($ret, 'sms_user', array('number'));
+-  db_add_index($ret, 'sms_user', 'uid', array('uid'));
+-  db_drop_field($ret, 'sms_user', 'delta');
+-  return $ret;
++  db_drop_primary_key('sms_user');
++  db_add_primary_key('sms_user', array('number'));
++  db_add_index('sms_user', 'uid', array('uid'));
++  db_drop_field('sms_user', 'delta');
++  return t('SMS database update 1 successful.');
+ }
+ 
+ /**
+  * Implements hook_uninstall().
+  */
+ function sms_uninstall() {
+-  drupal_uninstall_schema('sms');
+ 
+   $variables = array();
+-
++  # XXX D7 porting issue: need to variable_del sms* variables on sms_uninstall()
+   foreach ($variables as $variable) {
+     variable_del($variable);
+   }
+diff --git a/sms.module b/sms.module
+index 87387ae..b1cb003 100644
+--- a/sms.module
++++ b/sms.module
+@@ -8,35 +8,35 @@
+ 
+ // Direction codes
+ define('SMS_DIR_NONE', 0);
+-define('SMS_DIR_OUT',  1);
+-define('SMS_DIR_IN',   2);
+-define('SMS_DIR_ALL',  4);
++define('SMS_DIR_OUT',   1);
++define('SMS_DIR_IN',    2);
++define('SMS_DIR_ALL',   4);
+ 
+ // Message status codes
+ // 0=Unknown, 2xx=Positive, 3xx=Positive/Neutral (context-dependent), 4xx=Negative
+-define('SMS_MSG_STATUS_UNKNOWN',     0);
+-define('SMS_MSG_STATUS_OK',        200);
++define('SMS_MSG_STATUS_UNKNOWN',      0);
++define('SMS_MSG_STATUS_OK',         200);
+ define('SMS_MSG_STATUS_DELIVERED', 202);
+-define('SMS_MSG_STATUS_QUEUED',    302);
+-define('SMS_MSG_STATUS_ERROR',     400);
+-define('SMS_MSG_STATUS_NOCREDIT',  402);
+-define('SMS_MSG_STATUS_EXPIRED',   408);
++define('SMS_MSG_STATUS_QUEUED',     302);
++define('SMS_MSG_STATUS_ERROR',      400);
++define('SMS_MSG_STATUS_NOCREDIT',   402);
++define('SMS_MSG_STATUS_EXPIRED',    408);
+ 
+ // Gateway response codes
+ // 0=Unknown, 2xx=Positive, 4xx=Negative(likely client err), 5xx=Negative(likely gateway err)
+-define('SMS_GW_UNKNOWN_STATUS',     0);
+-define('SMS_GW_OK',               200);
+-define('SMS_GW_ERR_AUTH',         401);
++define('SMS_GW_UNKNOWN_STATUS',      0);
++define('SMS_GW_OK',                200);
++define('SMS_GW_ERR_AUTH',          401);
+ define('SMS_GW_ERR_INVALID_CALL', 400);
+-define('SMS_GW_ERR_NOT_FOUND',    404);
+-define('SMS_GW_ERR_MSG_LIMITS',   413);
+-define('SMS_GW_ERR_MSG_ROUTING',  502);
+-define('SMS_GW_ERR_MSG_QUEUING',  408);
+-define('SMS_GW_ERR_MSG_OTHER',    409);
+-define('SMS_GW_ERR_SRC_NUMBER',   415);
+-define('SMS_GW_ERR_DEST_NUMBER',  416);
+-define('SMS_GW_ERR_CREDIT',       402);
+-define('SMS_GW_ERR_OTHER',        500);
++define('SMS_GW_ERR_NOT_FOUND',     404);
++define('SMS_GW_ERR_MSG_LIMITS',    413);
++define('SMS_GW_ERR_MSG_ROUTING',   502);
++define('SMS_GW_ERR_MSG_QUEUING',   408);
++define('SMS_GW_ERR_MSG_OTHER',     409);
++define('SMS_GW_ERR_SRC_NUMBER',    415);
++define('SMS_GW_ERR_DEST_NUMBER',   416);
++define('SMS_GW_ERR_CREDIT',        402);
++define('SMS_GW_ERR_OTHER',         500);
+ 
+ //
+ define('SMS_CARRIER_DEFAULT', 0);
+@@ -56,7 +56,7 @@ function sms_menu() {
+     'page callback' => 'system_admin_menu_block_page',
+     'access arguments' => array('administer smsframework'),
+     'file' => 'system.admin.inc',
+-    'file path' => drupal_get_path('module', 'system')
++    'file path' => drupal_get_path('module', 'system'),
+   );
+ 
+   $items['admin/smsframework/gateways'] = array(
+@@ -127,10 +127,15 @@ function sms_menu() {
+ }
+ 
+ /**
+- * Implements hook_perm().
++ * Implements hook_permission().
+  */
+-function sms_perm() {
+-  return array('administer smsframework');
++function sms_permission() {
++  return array(
++    'administer smsframework' => array(
++      'title' => t('administer smsframework'),
++      'description' => t('Administer SMS Framework'),
++    ),
++  );
+ }
+ 
+ /**
+@@ -139,7 +144,7 @@ function sms_perm() {
+ function sms_theme() {
+   $items['sms_admin_default_form'] =
+   $items['sms_carriers_admin_form'] = array(
+-    'arguments' => array('form' => NULL),
++    'render element' => 'form',
+     'file' => 'sms.admin.inc',
+   );
+ 
+@@ -162,7 +167,7 @@ function sms_send($number, $message, $options = array()) {
+   $gateway = sms_default_gateway();
+ 
+   foreach (module_implements('sms_send') as $module) {
+-    $function = $module .'_sms_send';
++    $function = $module . '_sms_send';
+     $function($number, $message, $options, $gateway);
+   }
+ 
+@@ -174,7 +179,7 @@ function sms_send($number, $message, $options = array()) {
+ 
+   // Post process hook
+   foreach (module_implements('sms_send_process') as $module) {
+-    $function = $module .'_sms_send_process';
++    $function = $module . '_sms_send_process';
+     $function('post process', $number, $message, $options, $gateway, $result);
+   }
+ 
+@@ -192,7 +197,7 @@ function sms_handle_result($result, $number, $message) {
+     $error_message = 'Sending SMS to %number failed.';
+     $variables['%number'] = $number;
+     if ($result['message']) {
+-      $error_message .= ' The gateway said '. $result['message'];
++      $error_message .= ' The gateway said ' . $result['message'];
+       if (!empty($result['variables'])) {
+         $variables = array_merge($variables, $result['variables']);
+       }
+@@ -333,7 +338,7 @@ function _gateways_build() {
+ 
+   $gateway_array = module_invoke_all('gateway_info');
+   foreach ($gateway_array as $identifier => $info) {
+-    $info['configuration'] = variable_get('sms_'. $identifier .'_settings', '');
++    $info['configuration'] = variable_get('sms_' . $identifier . '_settings', '');
+     $_gateways[$identifier] = $info;
+     $_names[$identifier] = $info['name'];
+   }
+@@ -414,27 +419,31 @@ function sms_carriers($domain = NULL) {
+ 
+   // Load default carriers from code
+   foreach ($default_carriers as $id => $carrier) {
+-    $carriers[$id] = array('name' => $carrier, 'type' => SMS_CARRIER_DEFAULT);
++    $carriers[$id] = array(
++      'name' => $carrier,
++      'type' => SMS_CARRIER_DEFAULT,
++      'status' => 0,
++    );
+   }
+ 
+-  // Load overrideen carriers from database
+-  $result = db_query("SELECT name, domain FROM {sms_carriers}");
++  // Load overridden carriers from database
++  $result = db_query("SELECT s.name, s.domain FROM {sms_carriers} s");
+ 
+-  while ($carrier = db_fetch_array($result)) {
+-    if (in_array($carrier['domain'], array_keys($carriers))) {
++  foreach ($result as $carrier) {
++    if (in_array($carrier->domain, array_keys((array) $carriers))) { # XXX D7 porting issue: bad to cast Obj as array - do this the right way!
+       $type = SMS_CARRIER_OVERRIDDEN;
+     }
+     else {
+       $type = SMS_CARRIER_NORMAL;
+     }
+ 
+-    $carriers[$carrier['domain']] = array(
+-      'name' => $carrier['name'],
++    $carriers[$carrier->domain] = array(
++      'name' => $carrier->name,
+       'type' => $type,
+     );
+   }
+ 
+-  foreach($enabled_carriers as $carrier) {
++  foreach ($enabled_carriers as $carrier) {
+     if (is_array($carriers[$carrier])) {
+       $carriers[$carrier]['status'] = 1;
+     }
+@@ -465,9 +474,9 @@ function carrier_save($domain, $edit) {
+       $edit['status'] = 1;
+       drupal_write_record('sms_carriers', $edit);
+     }
+-    else if(!empty($edit['domain'])) {
++    elseif (!empty($edit['domain'])) {
+       drupal_write_record('sms_carriers', $edit, 'domain');
+-      // TODO: we need more logic to figure out when someone is changing the domain name
++      // TODO: we need more logic to figure out when someone is changing the domain name - broken in d6 version also
+     }
+   }
+   else {
+@@ -477,7 +486,7 @@ function carrier_save($domain, $edit) {
+ }
+ 
+ /**
+- * Implements hook_sms_carriers()
++ * Implements hook_sms_carriers().
+  */
+ function sms_sms_carriers() {
+   return array(
+@@ -576,23 +585,23 @@ function sms_formatter($number, $format = 1) {
+   $number = preg_replace("/[^0-9]/", '', $number);
+ 
+   /*
+-  @todo - the only length specification in the international numbering plan is that
+-  numbers should be a maximum of 15 digits.
+-
+-  http://en.wikipedia.org/wiki/E.164
+-
+-  if (strlen($number) > 16) {
+-    if ($number[0] == 1) {
+-      $number = ltrim($number, 1);
+-    }
+-    else {
+-      return FALSE;
+-    }
+-  }
+-  elseif (strlen($number) < 10) {
+-    return FALSE;
+-  }
+-  */
++   @todo - the only length specification in the international numbering plan is that
++   numbers should be a maximum of 15 digits.
++
++   http://en.wikipedia.org/wiki/E.164
++
++   if (strlen($number) > 16) {
++   if ($number[0] == 1) {
++   $number = ltrim($number, 1);
++   }
++   else {
++   return FALSE;
++   }
++   }
++   elseif (strlen($number) < 10) {
++   return FALSE;
++   }
++   */
+ 
+   return $number;
+ }
+@@ -621,10 +630,18 @@ function sms_validate_number(&$number, $options = array()) {
+  * @return const The constant that defines this direction combination. Usually an integer value.
+  */
+ function sms_dir($out, $in) {
+-  if ( $out &&  $in) { return SMS_DIR_ALL;  }
+-  if ( $out && !$in) { return SMS_DIR_OUT;  }
+-  if (!$out &&  $in) { return SMS_DIR_IN;   }
+-  if (!$out && !$in) { return SMS_DIR_NONE; }
++  if ( $out &&   $in) {
++    return SMS_DIR_ALL;
++  }
++  if ( $out && !$in) {
++    return SMS_DIR_OUT;
++  }
++  if (!$out &&   $in) {
++    return SMS_DIR_IN;
++  }
++  if (!$out && !$in) {
++    return SMS_DIR_NONE;
++  }
+ }
+ 
+ /**
+diff --git a/sms.rules.inc b/sms.rules.inc
+index 1495a5b..1db662b 100644
+--- a/sms.rules.inc
++++ b/sms.rules.inc
+@@ -34,9 +34,9 @@ function sms_token_values($type, $object = NULL, $options = array()) {
+   $values = array();
+   if ($type == 'sms_message') {
+     $values['message'] = $object;
+-    
++
+     $words = explode(' ', $object);
+-    
++
+     foreach ($words as $key => $word) {
+       $values['word-' . $key] = $word;
+     }
+@@ -44,7 +44,7 @@ function sms_token_values($type, $object = NULL, $options = array()) {
+   elseif ($type == 'sms_number') {
+     $values['number'] = $object;
+   }
+-  
++
+   return $values;
+ }
+ 
+@@ -62,6 +62,6 @@ function sms_token_list($type = 'all') {
+       $tokens['sms_number']['number'] = t('The origin mobile number');
+       break;
+   }
+-  
++
+   return $tokens;
+ }
