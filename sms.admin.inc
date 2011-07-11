@@ -148,7 +148,7 @@ function sms_admin_gateway_form_submit($form, &$form_state) {
 /**
  * Form builder for the list of sms carriers.
  *
- * @see sms_carriers_admin_form_submit().
+ * @see sms_carriers_admin_form_submit()
  */
 function sms_carriers_admin_form($form, &$form_state) {
   $carriers = sms_carriers();
@@ -211,7 +211,7 @@ function sms_carriers_admin_form($form, &$form_state) {
 /**
  * Form submission handler for sms_carriers_admin_form().
  *
- * @see sms_carriers_admin_form().
+ * @see sms_carriers_admin_form()
  */
 function sms_carriers_admin_form_submit(&$form, &$form_state) {
   $enabled_carriers = array();
@@ -230,7 +230,7 @@ function sms_carriers_admin_form_submit(&$form, &$form_state) {
  * @param $carrier
  *   An associative array defining the sms carrier.
  *
- * @see sms_carriers_edit_form_submit().
+ * @see sms_carriers_edit_form_submit()
  */
 function sms_carriers_edit_form($form, $form_state, $carrier = array()) {
   if (!isset($carrier['domain'])) {
@@ -269,7 +269,7 @@ function sms_carriers_edit_form($form, $form_state, $carrier = array()) {
 /**
  * Form submission handler for sms_carriers_edit_form().
  *
- * @see sms_carriers_edit_form().
+ * @see sms_carriers_edit_form()
  */
 function sms_carriers_edit_form_submit(&$form, &$form_state) {
   $carrier = array();

@@ -1,5 +1,7 @@
 <?php
 
+// $Id$
+
 /**
  * @file
  * The core of the SMS Framework. Provides gateway managment and API for
@@ -358,8 +360,8 @@ function _gateways_build() {
  * @param $required
  *   Specify if the user is required to provide information for the fields.
  *
- * @see sms_send_form_submit_validate().
- * @see sms_send_form_submit_submit().
+ * @see sms_send_form_submit_validate()
+ * @see sms_send_form_submit_submit()
  */
 function sms_send_form($required = FALSE) {
   $gateway = sms_default_gateway();
@@ -383,8 +385,8 @@ function sms_send_form($required = FALSE) {
 /**
  * Form validation handler for sms_send_form().
  *
- * @see sms_send_form().
- * @see sms_send_form_submit().
+ * @see sms_send_form()
+ * @see sms_send_form_submit()
  */
 function sms_send_form_validate($form, &$form_state) {
   if (!sms_validate_number(sms_formatter($form_state['values']['number']), $form_state['values']['gateway'])) {
@@ -395,8 +397,8 @@ function sms_send_form_validate($form, &$form_state) {
 /**
  * Form submission handler for sms_send_form().
  *
- * @see sms_send_form().
- * @see sms_send_form_validate().
+ * @see sms_send_form()
+ * @see sms_send_form_validate()
  */
 function sms_send_form_submit($form, &$form_state) {
   $form_state['values']['number'] = sms_formatter($form_state['values']['number']);
@@ -408,7 +410,7 @@ function sms_send_form_submit($form, &$form_state) {
  *
  * @todo - consider moving this to email gateway, unless there is a reason to
  * have these functions without the email gateway?
- *****************************************************************************/
+ */
 
 /**
  * Get a list of all carriers
@@ -556,7 +558,7 @@ function sms_sms_carriers() {
 
 /******************************************************************************
  * HELPER FUNCTIONS
- *****************************************************************************/
+ */
 
 /**
  * Formats a number for display.

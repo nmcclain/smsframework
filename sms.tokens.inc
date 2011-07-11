@@ -1,5 +1,7 @@
 <?php
 
+// $Id$
+
 /**
  * @file
  * Token callbacks for the sms module.
@@ -10,7 +12,7 @@
  */
 function sms_token_info() {
   $info['types']['sms'] = array(
-    'name' => t('SMS '),
+    'name' => t('SMS'),
     'needs-data' => 'sms',
   );
   $info['tokens']['sms']['number'] = array(
