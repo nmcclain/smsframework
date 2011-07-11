@@ -219,7 +219,7 @@ function sms_handle_result($result, $number, $message) {
  */
 function sms_incoming($number, $message, $options = array()) {
   if (module_exists('rules')) {
-    rules_invoke_event_by_args('sms_incoming', array('number' => $number, 'message' => $message));
+    rules_invoke_event('sms_incoming', array('number' => $number, 'message' => $message));
   }
 
   // Execute three phases
@@ -430,7 +430,7 @@ function sms_carriers($domain = NULL) {
   $result = db_query("SELECT s.name, s.domain FROM {sms_carriers} s");
 
   foreach ($result as $carrier) {
-    if (in_array($carrier->domain, array_keys((array) $carriers))) { # XXX D7 porting issue: bad to cast Obj as array - do this the right way!
+    if (in_array($carrier->domain, array_keys((array) $carriers))) {
       $type = SMS_CARRIER_OVERRIDDEN;
     }
     else {
@@ -864,72 +864,3 @@ function sms_country_codes() {
 
 }
 
-/**
- * Implements hook_token_info().
- */
-function sms_token_info() {
-  $types['sms-number'] = array(
-    'name' => t('sms-number'), 
-    'description' => t('SMS number.'), 
-    'needs-data' => NULL,
-    # 'needs-data' => 'simplenews-subscriber',
-  );
-  $types['sms-message'] = array(
-    'name' => t('sms-message'), 
-    'description' => t('SMS message.'), 
-    'needs-data' => NULL,
-    # 'needs-data' => 'simplenews-subscriber',
-  );
-
-  $smsnumber['sms-number'] = array(
-    'name' => t("SMS Number"), 
-    'description' => t("The origin mobile number."),
-  );
-  $smsmessage['sms-message'] = array(
-    'name' => t("SMS Message"), 
-    'description' => t("SMS message text."),
-  );
-  # XXX $tokens['message']['word-??']      = t('Individual word of the message text as specified by the ??.');
-
-  return array(
-    'types' => $types, 
-    'tokens' => array(
-      'sms-number' => $smsnumber,
-      'sms-message' => $smsmessage,
-    ),
-  );
-}
-
-/**
- * Implements hook_tokens().
- */
-function sms_tokens($type, $tokens, $data = array(), $options = array()) {
-  $replacements = array();
-  if ('sms' != $type) {
-    return $replacements;
-  }
-
-  foreach ($tokens as $name => $original) {
-    if ('number' == $name) {
-      $replacements[$original] = 'XXX1231234';
-      return $replacements;
-    } else if ('message' == $name) {
-
-/*
-      if ($type == 'message') {
-        $values['message'] = $object;
-
-        $words = explode(' ', $object);
-
-        foreach ($words as $key => $word) {
-          $values['word-' . $key] = $word;
-        }
-      }
-*/
-
-      $replacements[$original] = 'XXX SMS from ned';
-      return $replacements;
-    }
-  }
-  return $replacements;
-}

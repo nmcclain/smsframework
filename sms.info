@@ -10,4 +10,5 @@ project = "smsframework"
 files[] = sms.admin.inc
 files[] = sms.install
 files[] = sms.module
+files[] = sms.tokens.inc
 files[] = sms.rules.inc

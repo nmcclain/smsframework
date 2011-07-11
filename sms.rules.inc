@@ -16,15 +16,10 @@ function sms_rules_event_info() {
       'module' => 'sms',
       'group' => t('SMS Framework'),
       'variables' => array(
-        'number' => array(
-          'label' => t('SMS Number'),
-          'description' => t('The SMS number that sent the message.'),
-          'type' => 'text',
-        ),
-        'message' => array(
-          'label' => t('SMS Message'),
-          'description' => t('The SMS message that was received.'),
-          'type' => 'text',
+        'sms' => array(
+          'label' => t('SMS Information'),
+          'description' => t('The SMS information XXXblah blah message.'),
+          'type' => 'sms',
         ),
       ),
     ),
