@@ -111,7 +111,7 @@ function sms_actions_action_info() {
   return array(
     'sms_actions_send_action' => array(
       'type' => 'sms',
-      'description' => t('Send SMS'),
+      'label' => t('Send SMS'),
       'configurable' => TRUE,
       'hooks' => array(
         'sms_actions' => array('sms_actions'),
@@ -367,7 +367,7 @@ function sms_actions_command_list() {
 /**
  *
  */
-function sms_actions_edit_command_form(&$form_state, $discriminator = NULL) {
+function sms_actions_edit_command_form($form, &$form_state, $discriminator = NULL) {
   if (isset($discriminator)) {
     $command = sms_actions_command_load($discriminator);
   }

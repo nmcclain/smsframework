@@ -1,7 +1,5 @@
 <?php
 
-// $Id$
-
 /**
  * @file
  * The core of the SMS Framework. Provides gateway managment and API for
@@ -9,7 +7,7 @@
  */
 
 // Direction codes
-define('SMS_DIR_NONE', 0);
+define('SMS_DIR_NONE',  0);
 define('SMS_DIR_OUT',   1);
 define('SMS_DIR_IN',    2);
 define('SMS_DIR_ALL',   4);
@@ -18,7 +16,7 @@ define('SMS_DIR_ALL',   4);
 // 0=Unknown, 2xx=Positive, 3xx=Positive/Neutral (context-dependent), 4xx=Negative
 define('SMS_MSG_STATUS_UNKNOWN',      0);
 define('SMS_MSG_STATUS_OK',         200);
-define('SMS_MSG_STATUS_DELIVERED', 202);
+define('SMS_MSG_STATUS_DELIVERED',  202);
 define('SMS_MSG_STATUS_QUEUED',     302);
 define('SMS_MSG_STATUS_ERROR',      400);
 define('SMS_MSG_STATUS_NOCREDIT',   402);
@@ -29,7 +27,7 @@ define('SMS_MSG_STATUS_EXPIRED',    408);
 define('SMS_GW_UNKNOWN_STATUS',      0);
 define('SMS_GW_OK',                200);
 define('SMS_GW_ERR_AUTH',          401);
-define('SMS_GW_ERR_INVALID_CALL', 400);
+define('SMS_GW_ERR_INVALID_CALL',  400);
 define('SMS_GW_ERR_NOT_FOUND',     404);
 define('SMS_GW_ERR_MSG_LIMITS',    413);
 define('SMS_GW_ERR_MSG_ROUTING',   502);
@@ -374,7 +372,7 @@ function sms_send_form($required = FALSE) {
   );
 
   // Add gateway defined fields
-  if (function_exists($gateway['send form'])) {
+  if (!empty($gateway['send form']) && function_exists($gateway['send form'])) {
     $form['gateway']['#tree'] = TRUE;
     $form['gateway'] = array_merge($gateway['send form']($required), $form['gateway']);
   }
@@ -389,8 +387,9 @@ function sms_send_form($required = FALSE) {
  * @see sms_send_form_submit()
  */
 function sms_send_form_validate($form, &$form_state) {
-  if (!sms_validate_number(sms_formatter($form_state['values']['number']), $form_state['values']['gateway'])) {
-    form_set_error('number', t('You must enter a valid phone number.'));
+  $not_valid = sms_validate_number(sms_formatter($form_state['values']['number']), $form_state['values']['gateway']); 
+  if ($not_valid) {
+    form_set_error('number', t($not_valid));
   }
 }
 
@@ -410,7 +409,7 @@ function sms_send_form_submit($form, &$form_state) {
  *
  * @todo - consider moving this to email gateway, unless there is a reason to
  * have these functions without the email gateway?
- */
+ *****************************************************************************/
 
 /**
  * Get a list of all carriers
@@ -418,21 +417,18 @@ function sms_send_form_submit($form, &$form_state) {
 function sms_carriers($domain = NULL) {
   $default_carriers = module_invoke_all('sms_carriers');
   $enabled_carriers = variable_get('sms_enabled_carriers', array());
+  $carriers = array();
 
   // Load default carriers from code
   foreach ($default_carriers as $id => $carrier) {
-    $carriers[$id] = array(
-      'name' => $carrier,
-      'type' => SMS_CARRIER_DEFAULT,
-      'status' => 0,
-    );
+    $carriers[$id] = array('name' => $carrier, 'type' => SMS_CARRIER_DEFAULT);
   }
 
-  // Load overridden carriers from database
-  $result = db_query("SELECT s.name, s.domain FROM {sms_carriers} s");
+  // Load overrideen carriers from database
+  $result = db_query("SELECT name, domain FROM {sms_carriers}");
 
   foreach ($result as $carrier) {
-    if (in_array($carrier->domain, array_keys((array) $carriers))) {
+    if (in_array($carrier->domain, array_keys($carriers))) {
       $type = SMS_CARRIER_OVERRIDDEN;
     }
     else {
@@ -472,13 +468,23 @@ function carrier_load($domain) {
 function carrier_save($domain, $edit) {
   if (!empty($domain)) {
     $carrier = carrier_load($domain);
+
     if ($carrier['type'] == SMS_CARRIER_DEFAULT) {
       $edit['status'] = 1;
       drupal_write_record('sms_carriers', $edit);
     }
     elseif (!empty($edit['domain'])) {
-      drupal_write_record('sms_carriers', $edit, 'domain');
-      // TODO: we need more logic to figure out when someone is changing the domain name - broken in d6 version also
+      //Case for when the domain name hasn't changed
+      if ($edit['domain'] == $domain) {
+        drupal_write_record('sms_carriers', $edit, 'domain');
+      }
+      //Case for when the domain has changed
+      else {
+        carrier_delete($domain);
+        drupal_write_record('sms_carriers', $edit);
+      }
+      
+      // TODO: we need more logic to figure out when someone is changing the domain name
     }
   }
   else {
@@ -487,73 +493,20 @@ function carrier_save($domain, $edit) {
   }
 }
 
-/**
- * Implements hook_sms_carriers().
- */
-function sms_sms_carriers() {
-  return array(
-    'sms.3rivers.net' => t('3 River Wireless'),
-    'airtelkk.com' => t('Airtel (Karnataka, India)'),
-    'msg.acsalaska.com' => t('Alaska Communications Systems'),
-    'message.alltel.com' => t('Alltel Wireless'),
-    'txt.att.net' => t('AT&T/Cingular'),
-    'txt.bell.ca' => t('Bell Mobility (Canada)'),
-    'myboostmobile.com' => t('Boost Mobile'),
-    'mobile.celloneusa.com' => t('Cellular One (Dobson)'),
-    'south1.com' => t('Cellular South'),
-    'cwemail.com' => t('Centennial Wireless'),
-    '139.com' => t('ChinaMobile (139)'),
-    'gocbw.com' => t('Cincinnati Bell Wireless'),
-    'cingularme.com' => t('Cingular (GoPhone prepaid/7-11 Speakout)'),
-    'ideasclaro-ca.com' => t('Claro (Nicaragua)'),
-    'mms.claro.com.uy' => t('Claro (Uruguay)'),
-    'comcel.com.co' => t('Comcel'),
-    'sms.mycricket.com' => t('Cricket'),
-    'sms.ctimovil.com.ar' => t('CTI'),
-    'emtelworld.net' => t('Emtel (Mauritius)'),
-    'smsmail.eplus.de' => t('E-Plus'),
-    'fido.ca' => t('Fido (Canada)'),
-    'msg.gci.net' => t('General Communications Inc.'),
-    'msg.globalstarusa.com' => t('Globalstar'),
-    'myhelio.com' => t('Helio'),
-    'ivctext.com' => t('Illinois Valley Cellular'),
-    'sms.mymeteor.ie' => t('Meteor (Ireland)'),
-    'sms.spicenepal.com' => t('Mero Mobile (Nepal)'),
-    'mymetropcs.com' => t('MetroPCS'),
-    'mobilinkworld.com' => t('Mobilink World'),
-    'sms.mobitel.lk' => t('Mobitel (Sri Lanka)'),
-    'movimensaje.com.ar' => t('Movicom'),
-    'movistar.com.co' => t('Movistar (Colombia)'),
-    'sms.co.za' => t('MTN (South Africa)'),
-    'text.mtsmobility.com' => t('MTS (Canada)'),
-    'nextel.net.ar' => t('Nextel (Argentina)'),
-    'orange.fr' => t('Orange (France)'),
-    'orange.pl' => t('Orange (Poland)'),
-    'orange.net' => t('Orange (UK)'),
-    'personal-net.com.ar' => t('Personal (Argentina)'),
-    'text.plusgsm.pl' => t('Plus GSM (Poland)'),
-    'qwestmp.com' => t('Qwest'),
-    'pcs.rogers.com' => t('Rogers (Canada)'),
-    'sms.sasktel.com' => t('Sasktel (Canada)'),
-    'mas.aw' => t('Setar Mobile email (Aruba)'),
-    'page.nextel.com' => t('Sprint (Nextel)'),
-    'messaging.sprintpcs.com' => t('Sprint (PCS)'),
-    'tms.suncom.com' => t('Suncom'),
-    'tmomail.net' => t('T-Mobile'),
-    'sms.t-mobile.at' => t('T-Mobile (Austria)'),
-    't-mobile-sms.de' => t('T-Mobile Germany'),
-    'msg.telus.com' => t('Telus Mobility (Canada)'),
-    'sms.thumbcellular.com' => t('Thumb Cellular'),
-    'sms.tigo.com.co' => t('Tigo (Formerly Ola)'),
-    'utext.com' => t('Unicel'),
-    'email.uscc.net' => t('US Cellular'),
-    'vtext.com' => t('Verizon'),
-    'vmobile.ca' => t('Virgin Mobile (Canada)'),
-    'vmobl.com' => t('Virgin Mobile'),
-    'vodafone-sms.de' => t('Vodafone Germany'),
-    'sms.ycc.ru' => t('YCC'),
-    'vmpix.com' => t('Virgin Mobile'),
-  );
+function carrier_delete($domain) {
+  db_delete('sms_carriers')
+    ->condition('domain', $domain)
+    ->execute();
+    
+  //removes carrier from variable
+  $enabled_carriers = variable_get('sms_enabled_carriers', array());
+  foreach ($enabled_carriers as $i => $carrier) {
+    if ($carrier == $domain) {
+      unset($enabled_carriers[$i]);
+      break;
+    }
+  }
+  variable_set('sms_enabled_carriers', $enabled_carriers);
 }
 
 /******************************************************************************
@@ -619,8 +572,17 @@ function sms_validate_number(&$number, $options = array()) {
 
   // Allow the active gateway to provide number validation
   $gateway = sms_default_gateway();
-  if (function_exists($gateway['validate number']) && $error = $gateway['validate number']($number, $options)) {
-    return $error;
+  // TODO we neeed some sort of validation this isn't working properly.
+  if (isset($gateway['validate_number'])) {
+    if (function_exists($gateway['validate number']) && $error = $gateway['validate number']($number, $options)) {
+      return $error;
+    }
+    elseif ($error = sms_valid_validate($number, $options)) {
+      return $error;
+    }
+  }
+  else {
+    return NULL;
   }
 }
 
@@ -863,6 +825,4 @@ function sms_country_codes() {
     255 => "Zanzibar",
     263 => "Zimbabwe",
   );
-
 }
-

@@ -4,8 +4,8 @@
  * Handles AJAX submission and response in SMS Framework: Devel virtual gateway
  */
 
-
-sms_devel.virtualgw.getactivity = function() {
+/*
+sms_devel.virtualgw.getactivity = (function() {
   var url = location.protocol +"//"+ location.host + Drupal.settings.basePath +"admin/smsframework/devel/virtualgw/getactivity";
   $.ajax({
     url: url,
@@ -24,10 +24,10 @@ sms_devel.virtualgw.getactivity = function() {
     }
   });
   $("#clean-url").addClass('clean-url-processed');
-};
+})(jQuery);
 
 this.timer = setTimeout(sms_devel.virtualgw.getactivity, 1000);
-
+*/
 //if (this.timer) {
 //  clearTimeout(this.timer);
 //}

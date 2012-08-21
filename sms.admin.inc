@@ -1,7 +1,5 @@
 <?php
 
-// $Id$
-
 /**
  * @file
  * The admin sms functions.
@@ -16,12 +14,12 @@ function sms_admin_default_form($form, &$form_state) {
   foreach ($gateways as $identifier => $gateway) {
     $active = ($identifier == variable_get('sms_default_gateway', 'log'));
     $options[$identifier] = '';
-    $form[$gateway['name']]['id'] = array('#value' => $identifier);
+    $form[$gateway['name']]['id'] = array('#markup' => $identifier);
     if ( isset($gateway['configure form'] ) and ( function_exists($gateway['configure form'] ))) {
-      $form[$gateway['name']]['configure'] = array('#value' => l(t('configure'), 'admin/smsframework/gateways/' . $identifier));
+      $form[$gateway['name']]['configure'] = array('#markup' => l(t('configure'), 'admin/smsframework/gateways/' . $identifier));
     }
     else {
-      $form[$gateway['name']]['configure'] = array('#value' => t('No configuration options'));
+      $form[$gateway['name']]['configure'] = array('#markup' => t('No configuration options'));
     }
   }
 
@@ -65,11 +63,10 @@ function theme_sms_admin_default_form($variables) {
   $rows = array();
   foreach ($form as $name => $element) {
     if (is_array($element) and isset($element['id']) and is_array($element['id'])) {
-        # dsm($element['configure']);
       $rows[] = array(
-        drupal_render($form['default'][$element['id']['#value']]),
+        drupal_render($form['default'][$element['id']['#markup']]),
         check_plain($name),
-        $element['configure']['#value'], // XXX D7 porting issue: why doesn't this work?  drupal_render($element['configure']),
+        $element['configure']['#markup'],
       );
       unset($form[$name]);
     }
@@ -152,7 +149,6 @@ function sms_admin_gateway_form_submit($form, &$form_state) {
  */
 function sms_carriers_admin_form($form, &$form_state) {
   $carriers = sms_carriers();
-
   $form = array();
   foreach ($carriers as $id => $carrier) {
     $actions = array();
@@ -177,12 +173,12 @@ function sms_carriers_admin_form($form, &$form_state) {
       '#type' => 'checkbox',
       '#title' => check_plain($carrier['name']),
       '#description' => check_plain($storage),
-      '#default_value' => $carrier['status'],
+      '#default_value' => $carrier['status'] == 1,
     );
 
     $form['domain'][$css_safe_id] = array(
       '#type' => 'markup',
-      '#value' => $id,
+      '#markup' => check_plain($id),
     );
 
     $actions[] = l(t('Edit'), "admin/smsframework/carriers/{$id}");
@@ -196,7 +192,7 @@ function sms_carriers_admin_form($form, &$form_state) {
 
     $form['actions'][$css_safe_id] = array(
       '#type' => 'markup',
-      '#value' => implode(' | ', $actions),
+      '#markup' => implode(' | ', $actions),
     );
   }
 
@@ -266,6 +262,23 @@ function sms_carriers_edit_form($form, $form_state, $carrier = array()) {
   return $form;
 }
 
+
+/**
+ * Form submission handler for sms_carriers_edit_form().
+ *
+ * @see sms_carriers_edit_form()
+ */
+function sms_carriers_edit_form_validate(&$form, &$form_state) {
+  $carriers = sms_carriers();
+  if ($form_state['values']['domain'] != $form_state['values']['carrier']) {
+    foreach ($carriers as $domain => $carrier) {
+      if ($domain == $form_state['values']['domain']) {
+        form_set_error('', t('Domain must be unique.'));
+      }
+    }
+  }
+}
+
 /**
  * Form submission handler for sms_carriers_edit_form().
  *
@@ -313,9 +326,7 @@ function sms_carriers_delete_form($form, &$form_state, $carrier) {
  * @see sms_carriers_delete_form()
  */
 function sms_carriers_delete_form_submit($form, &$form_state) {
-  db_delete('sms_carriers')
-    ->condition('domain', $form_state['values']['domain'])
-    ->execute();
+  carrier_delete($form_state['values']['domain']);
   # XXX D7 porting issue: $carrier below never gets set ??
   # --- this is ALSO a bug in the D6 verion!
   #if ($carrier['type'] == SMS_CARRIER_OVERRIDDEN) {
@@ -339,7 +350,7 @@ function sms_carriers_delete_form_submit($form, &$form_state) {
 function theme_sms_carriers_admin_form($variables) {
   $form = $variables['form'];
 
-  $header = array('', t('Carrier'), t('Domain'), t('Actions'));
+  $header = array(t('Enabled'), t('Carrier'), t('Domain'), t('Actions'));
 
   $rows = array();
   foreach (element_children($form['status']) as $element) {
@@ -349,12 +360,11 @@ function theme_sms_carriers_admin_form($variables) {
     $name .= "</div>";
     unset($form['status'][$element]['#title']);
     unset($form['status'][$element]['#description']);
-
     $row = array(
       'status' => drupal_render($form['status'][$element]),
       'name' => $name,
-      'domain' => $form['domain'][$element]['#value'], // XXX D7 porting issue: why doesn't this work?  'domain' => drupal_render($form['domain'][$element]),
-      'actions' => $form['actions'][$element]['#value'], // XXX D7 porting issue: why doesn't this work?  'actions' => drupal_render($form['actions'][$element]),
+      'domain' => drupal_render($form['domain'][$element]), 
+      'actions' => drupal_render($form['actions'][$element]),
     );
     $rows[] = $row;
   }
@@ -365,4 +375,3 @@ function theme_sms_carriers_admin_form($variables) {
 
   return $output;
 }
-

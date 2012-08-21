@@ -1,21 +1,18 @@
 <?php
 
-// $Id$
-
 /**
  * @file
  * Rules module support of the smsframework.
  */
 
 /**
- * Implements hook_rules_event_info() on behalf of the smsframework module.
+ * Implements hook_rules_event_info().
  */
 function sms_rules_event_info() {
   return array(
     'sms_incoming' => array(
       'label' => t('A SMS message is received'),
-      'help' => t("XXX TODO"),
-      'access callback' => TRUE, # XXX TODO!
+      'access callback' => 'sms_rules_access_callback',
       'module' => 'sms',
       'group' => t('SMS Framework'),
       'variables' => array(
@@ -30,7 +27,7 @@ function sms_rules_event_info() {
 }
 
 /**
- * Implements hook_rules_data_info() on behalf of the smsframework module.
+ * Implements hook_rules_data_info().
  */
 function sms_rules_data_info() {
   return array(
@@ -54,17 +51,16 @@ function _sms_rules_sms_info() {
     'message' => array(
       'type' => 'text',
       'label' => ('The SMS message'),
-      'sanitized' => FALSE,
     ),
   );
 }
 
 /**
- * Implements hook_rules_action_info() on behalf of the system module.
+ * Implements hook_rules_action_info().
  */
 function sms_rules_action_info() {
   return array(
-    'sms' => array(
+    'sms_send' => array(
       'label' => t('Send sms'),
       'group' => t('SMS'),
       'parameter' => array(
@@ -79,8 +75,8 @@ function sms_rules_action_info() {
           'description' => t("The sms message body."),
         ),
       ),
-      'base' => 'rules_action_sms',
-      'access callback' => TRUE, # XXX
+      'base' => 'sms_rules_action_sms_send',
+      'access callback' => 'sms_rules_access_callback',
     ),
   );
 }
@@ -88,12 +84,13 @@ function sms_rules_action_info() {
 /**
  * Action Implementation: Send sms.
  */
-function rules_action_sms($to, $message) {
-  if (!sms_send($to, $message)) {
-    watchdog('sms', 'Failed to send sms to %recipient', array('%recipient' => $to));
-  }
-  else {
-    watchdog('sms', 'Successfully sent sms to %recipient', array('%recipient' => $to));
-  }
+function sms_rules_action_sms_send($to, $message) {
+  sms_send($to, $message);
 }
 
+/**
+ * Access callback for the SMS Rules integration.
+ */
+function sms_rules_access_callback($type) {
+  return user_access('administer smsframework');
+}
